@@ -1,0 +1,9 @@
+DEPENDENCIES
+  build-essential
+  golang
+    git: git://github.com/NOX73/chef-golang.git
+    revision: 76dd4a37275b4255aae55df65b7310fbd83abced
+
+GRAPH
+  build-essential (2.0.4)
+  golang (1.4.0)

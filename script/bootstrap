@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -e
+
+if_changed () {
+    file=$1
+
+    last_run=$(git config --local if-changed.$file.lastRun || true)
+    test -z "$last_run" && return 0
+
+    revision=$(git log -1 --pretty=format:%H -- "$file")
+    test "$revision" != "$last_run" && return 0
+
+    git diff --quiet -- $file || return 0
+
+    return 1
+}
+
+run_if_changed () {
+    file=$1; shift
+    test $1 = "--" && shift
+
+    if if_changed $file; then
+        echo "---> $* ($file changed)"
+        "$@"
+        git config --local if-changed.$file.lastRun $(git rev-parse HEAD)
+    fi
+}
+
+run_if_changed Gemfile     -- bundle install
+run_if_changed Berksfile   -- sh -c 'rm -rf berks-cookbooks/ && bundle exec berks vendor'
+run_if_changed Vagrantfile -- sh -c 'vagrant up && vagrant reload --provision'
