@@ -2,12 +2,12 @@ require 'yaml'
 
 VAGRANTFILE_API_VERSION = "2"
 
-MACHINES = YAML.load_file('machines.yaml')
+CONFIG = YAML.load_file('config.yml')
 
 Vagrant.configure("2") do |config|
   config.omnibus.chef_version = :latest
 
-  MACHINES.each do |name, machine|
+  CONFIG['machines'].each do |name, machine|
     config.vm.box_check_update = false
 
     config.vm.define name do |config|
@@ -31,13 +31,6 @@ Vagrant.configure("2") do |config|
         }
       end
 
-      config.vm.provision :shell, inline: <<-__BUILD_GO_386__
-        if [ "$(go env GOARCH)" != '386' ] && ! go tool -n 8g; then
-          cd $(go env GOROOT)/src
-          GOARCH=386 ./make.bash
-        fi
-      __BUILD_GO_386__
-
       config.vm.provision :shell, inline: <<-__INSTALL_RUBY__
         if which apt-get; then
           apt-get install -y ruby
@@ -48,8 +41,8 @@ Vagrant.configure("2") do |config|
 
       config.vm.provision :shell, inline: 'chown -R vagrant:vagrant /home/vagrant/src'
 
-      config.vm.synced_folder "#{ENV['GOPATH']}/src/github.com/mackerelio/mackerel-agent",
-                              '/home/vagrant/src/github.com/mackerelio/mackerel-agent'
+      config.vm.synced_folder "#{ENV['GOPATH']}/src/#{CONFIG['package']}",
+                              "/home/vagrant/src/#{CONFIG['package']}"
     end
   end
 end

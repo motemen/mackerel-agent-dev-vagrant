@@ -1,18 +1,21 @@
 require 'yaml'
 
-MACHINES = YAML.load_file('machines.yaml')
-TARGET_PACKAGE = 'github.com/mackerelio/mackerel-agent'
+CONFIG = YAML.load_file('config.yml')
 
 def cmd_on_vagrant(name, command)
   [
-    'vagrant', 'ssh', name, '--',
-      '$SHELL', '-l', '-c', %Q('cd src/#{TARGET_PACKAGE} && { #{command}; } 2>&1 | sed -u "s/^/[#{'%10s' % name}] /"')
+    'ssh', '-F', '.ssh_config', name, '--',
+      '$SHELL', '-l', '-c',
+        %Q('cd src/#{CONFIG['package']} && { #{command}; } 2>&1 | sed -u "s/^/[#{'%10s' % name}] /"')
   ]
 end
 
-task :test do
-  threads = MACHINES.map do |name,conf|
-    sleep 0.5
+file '.ssh_config' do
+  sh 'vagrant ssh-config > .ssh_config'
+end
+
+task :test => [ '.ssh_config' ] do
+  threads = CONFIG['machines'].map do |name,conf|
     Thread.new do
       puts "---> Running on #{name}"
       sh *cmd_on_vagrant(name, 'make test')
@@ -21,19 +24,16 @@ task :test do
   threads.each { |t| t.join }
 end
 
-task :watch do |t,args|
+task :watch => [ '.ssh_config' ] do |t,args|
   require 'listen'
   require 'pathname'
 
-  ios = MACHINES.map do |name,conf|
+  ios = CONFIG['machines'].map do |name,conf|
     puts "---> Listening to changes on #{name}"
-    sleep 0.5 # wait slightly for vagrant starting
-    IO.popen([
-      *cmd_on_vagrant(name, 'while read signal; do make test; done')
-    ], 'w')
+    IO.popen cmd_on_vagrant(name, 'while read signal; do make test; done'), 'w'
   end
 
-  source_dir = Pathname.new(ENV['GOPATH']) + 'src' + TARGET_PACKAGE
+  source_dir = Pathname.new(ENV['GOPATH']) + 'src' + CONFIG['package']
   listener = Listen.to(source_dir) do |m,a,r|
     puts "---> Files changed: #{(m+a+r).map { |p| Pathname.new(p).relative_path_from(source_dir) }.join(' ')}"
     ios.each { |io| io.puts }

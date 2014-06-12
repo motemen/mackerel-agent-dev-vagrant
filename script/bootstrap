@@ -2,41 +2,15 @@
 
 set -e
 
-__last_file_rev () {
-    git log -1 --pretty=format:%H -- "$1"
-}
+bundle install
 
-if_changed () {
-    file=$1
+rm -rf berks-cookbooks
+bundle exec berks vendor
 
-    last_run=$(git config --local if-changed.$file.lastRun || true)
-    test -z "$last_run" && return 0
+if ! vagrant plugin list | grep -q vagrant-omnibus; then
+    vagrant plugin install vagrant-omnibus
+fi
 
-    revision=$(__last_file_rev $file)
-    test "$revision" != "$last_run" && return 0
-
-    git diff --quiet --ignore-all-space -- $file || return 0
-
-    return 1
-}
-
-run_if_changed () {
-    file=$1; shift
-    test $1 = "--" && shift
-
-    if if_changed $file; then
-        echo "---> $* ($file changed)"
-        "$@"
-        git config --local if-changed.$file.lastRun $(__last_file_rev $file)
-    fi
-}
-
-run_if_changed Gemfile     -- bundle install
-run_if_changed Berksfile   -- sh -c 'rm -rf berks-cookbooks/ && bundle exec berks vendor'
-run_if_changed Vagrantfile -- sh -c 'vagrant up && vagrant reload --provision'
-
-cat <<'__BANNER__'
-Done! Now you can run:
- * `rake test` to test mackerel-agent on each vagrant machines,
- * `rake watch` to watch the source code for changes to trigger test.
-__BANNER__
+vagrant up
+vagrant reload --provision
+vagrant ssh-config > .ssh_config
