@@ -1,15 +1,8 @@
+require 'yaml'
+
 VAGRANTFILE_API_VERSION = "2"
 
-MACHINES = {
-  'precise64' => {
-    box: 'hashicorp/precise64',
-    platform: 'amd64'
-  },
-  'centos-6.5' => {
-    box: 'chef/centos-6.5',
-    platform: 'amd64'
-  },
-}
+MACHINES = YAML.load_file('machines.yaml')
 
 Vagrant.configure("2") do |config|
   config.omnibus.chef_version = :latest
@@ -18,7 +11,7 @@ Vagrant.configure("2") do |config|
     config.vm.box_check_update = false
 
     config.vm.define name do |config|
-      config.vm.box = machine[:box]
+      config.vm.box = machine['box']
 
       config.vm.hostname = [ 'mackerel-agent', name, 'vagrant', %x(uname -n).chomp ].join('.')
 
@@ -30,10 +23,10 @@ Vagrant.configure("2") do |config|
         ]
         chef.json = {
           go: {
-            gopath: '/home/vagrant',
-            owner: 'vagrant',
-            group: 'vagrant',
-            platform: machine[:platform]
+            gopath:   '/home/vagrant',
+            owner:    'vagrant',
+            group:    'vagrant',
+            platform: machine['platform']
           }
         }
       end
@@ -44,6 +37,14 @@ Vagrant.configure("2") do |config|
           GOARCH=386 ./make.bash
         fi
       __BUILD_GO_386__
+
+      config.vm.provision :shell, inline: <<-__INSTALL_RUBY__
+        if which apt-get; then
+          apt-get install -y ruby
+        elif which yum; then
+          yum install -y ruby
+        fi
+      __INSTALL_RUBY__
 
       config.vm.provision :shell, inline: 'chown -R vagrant:vagrant /home/vagrant/src'
 

@@ -1,0 +1,6 @@
+precise64:
+  box: hashicorp/precise64
+  platform: amd64
+centos-6.5:
+  box: chef/centos-6.5
+  platform: amd64
