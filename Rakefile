@@ -39,6 +39,9 @@ task :watch do |t,args|
     ios.each { |io| io.puts }
   end
   listener.only /\.go$/
+
+  puts "---> Watching changes on #{source_dir}"
+
   listener.start
 
   trap 'INT' do

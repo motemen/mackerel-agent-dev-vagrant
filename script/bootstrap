@@ -34,3 +34,9 @@ run_if_changed () {
 run_if_changed Gemfile     -- bundle install
 run_if_changed Berksfile   -- sh -c 'rm -rf berks-cookbooks/ && bundle exec berks vendor'
 run_if_changed Vagrantfile -- sh -c 'vagrant up && vagrant reload --provision'
+
+cat <<'__BANNER__'
+Done! Now you can run:
+ * `rake test` to test mackerel-agent on each vagrant machines,
+ * `rake watch` to watch the source code for changes to trigger test.
+__BANNER__
