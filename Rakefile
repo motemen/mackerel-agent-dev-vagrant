@@ -14,6 +14,21 @@ file '.ssh_config' do
   sh 'vagrant ssh-config > .ssh_config'
 end
 
+task :default => [ :up, :watch ]
+
+task :up do
+  sh 'vagrant', 'up'
+  sh 'vagrant ssh-config > .ssh_config'
+end
+
+task :provision do
+  sh 'vagrant', 'reload', '--provision'
+end
+
+task :down do
+  sh 'vagrant', 'halt'
+end
+
 task :test => [ '.ssh_config' ] do
   threads = CONFIG['machines'].map do |name,conf|
     Thread.new do
