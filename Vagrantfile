@@ -26,7 +26,8 @@ Vagrant.configure("2") do |config|
             gopath:   '/home/vagrant',
             owner:    'vagrant',
             group:    'vagrant',
-            platform: machine['platform']
+            platform: machine['platform'],
+            version:  '1.3'
           }
         }
       end
